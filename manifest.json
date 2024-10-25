@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Text Simplifier",
     "version": "1.0",
-    "description": "Simplifies complex text for easier reading",
+    "description": "Simplifies complex text and generates explanatory images",
     "permissions": [
         "activeTab",
         "storage",
@@ -12,6 +12,9 @@
         "https://api.openai.com/*",
         "<all_urls>"
     ],
+    "background": {
+        "service_worker": "background.js"
+    },
     "action": {
         "default_popup": "popup.html",
         "default_icon": {

@@ -65,6 +65,22 @@ async function simplifyText(text, level) {
   }
 }  // Close simplifyText function
 
+async function generateExplanatoryImage(text) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: 'generateImage', text: text },
+      response => {
+        if (response && response.imageUrl) {
+          resolve(response.imageUrl);
+        } else {
+          console.error('Failed to generate image:', response?.error);
+          resolve(null);
+        }
+      }
+    );
+  });
+}
+
 async function applyTextSimplification(enabled, settings = {}) {
     console.log('applyTextSimplification called:', { enabled, settings });
     if (isProcessing) {
@@ -94,8 +110,28 @@ async function applyTextSimplification(enabled, settings = {}) {
                 if (!originalText.has(paragraph)) {
                     originalText.set(paragraph, paragraph.textContent);
                     paragraph.classList.add('simplifying');
+                    
+                    // Simplify text
                     const simplifiedText = await simplifyText(paragraph.textContent, settings.level);
                     paragraph.textContent = simplifiedText;
+                    
+                    // Generate image for complex paragraphs (more than 100 words)
+                    if (paragraph.textContent.split(' ').length > 100) {
+                        const imageUrl = await generateExplanatoryImage(paragraph.textContent);
+                        if (imageUrl) {
+                            const imgContainer = document.createElement('div');
+                            imgContainer.className = 'simplified-image-container';
+                            
+                            const img = document.createElement('img');
+                            img.src = imageUrl;
+                            img.alt = 'Explanatory diagram';
+                            img.className = 'simplified-explanation-image';
+                            
+                            imgContainer.appendChild(img);
+                            paragraph.after(imgContainer);
+                        }
+                    }
+                    
                     paragraph.classList.remove('simplifying');
                     paragraph.classList.add('simplified-text');
                 }
@@ -104,6 +140,12 @@ async function applyTextSimplification(enabled, settings = {}) {
                 if (original) {
                     paragraph.textContent = original;
                     paragraph.classList.remove('simplified-text', 'simplifying');
+                    
+                    // Remove associated image if it exists
+                    const nextElement = paragraph.nextElementSibling;
+                    if (nextElement?.classList.contains('simplified-image-container')) {
+                        nextElement.remove();
+                    }
                 }
             }
         }
@@ -158,3 +200,91 @@ try {
 } catch (error) {
     console.error('Failed to access storage:', error);
 }
+
+// Add this at the start of your content.js file
+let contextMenu = null;
+
+function createContextMenu() {
+  const menu = document.createElement('div');
+  menu.className = 'text-context-menu';
+  const button = document.createElement('button');
+  button.textContent = 'Generate Explanation Image';
+  menu.appendChild(button);
+  document.body.appendChild(menu);
+  return menu;
+}
+
+function showContextMenu(x, y) {
+  if (!contextMenu) {
+    contextMenu = createContextMenu();
+  }
+  
+  contextMenu.style.left = `${x}px`;
+  contextMenu.style.top = `${y}px`;
+  contextMenu.classList.add('visible');
+}
+
+function hideContextMenu() {
+  if (contextMenu) {
+    contextMenu.classList.remove('visible');
+  }
+}
+
+// Handle text selection
+document.addEventListener('mouseup', async function(e) {
+  const selection = window.getSelection();
+  const selectedText = selection.toString().trim();
+
+  // Hide menu if click outside or no text selected
+  if (!selectedText) {
+    hideContextMenu();
+    return;
+  }
+
+  // Only show menu if images are enabled in settings
+  chrome.storage.sync.get(['enableImages'], function(data) {
+    if (data.enableImages) {
+      showContextMenu(e.pageX, e.pageY);
+      
+      // Add click handler to the generate button
+      const button = contextMenu.querySelector('button');
+      button.onclick = async function() {
+        hideContextMenu();
+        
+        // Create placeholder for the image
+        const range = selection.getRangeAt(0);
+        const placeholder = document.createElement('div');
+        placeholder.className = 'simplified-image-container';
+        placeholder.textContent = 'Generating explanation image...';
+        
+        // Insert placeholder after the selected text
+        range.collapse(false);
+        range.insertNode(placeholder);
+        
+        // Generate and insert the image
+        const imageUrl = await generateExplanatoryImage(selectedText);
+        if (imageUrl) {
+          const imgContainer = document.createElement('div');
+          imgContainer.className = 'simplified-image-container';
+          
+          const img = document.createElement('img');
+          img.src = imageUrl;
+          img.alt = 'Explanatory diagram';
+          img.className = 'simplified-explanation-image';
+          
+          imgContainer.appendChild(img);
+          placeholder.replaceWith(imgContainer);
+        } else {
+          placeholder.remove();
+        }
+      };
+    }
+  });
+});
+
+// Hide context menu when clicking outside
+document.addEventListener('mousedown', function(e) {
+  if (contextMenu && !contextMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+});
