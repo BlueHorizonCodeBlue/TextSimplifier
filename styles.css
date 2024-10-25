@@ -28,3 +28,50 @@
     padding: 2px 5px;
     border-radius: 3px;
   }
+
+.simplified-image-container {
+  margin: 10px 0;
+  text-align: center;
+}
+
+.simplified-explanation-image {
+  max-width: 512px;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.simplified-explanation-image:hover {
+  transform: scale(1.02);
+}
+
+.text-context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  padding: 8px;
+  z-index: 1000;
+  display: none;
+}
+
+.text-context-menu.visible {
+  display: block;
+}
+
+.text-context-menu button {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.text-context-menu button:hover {
+  background: #1976D2;
+}

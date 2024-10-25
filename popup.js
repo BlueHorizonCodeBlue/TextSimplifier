@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const simplificationLevelValue = document.getElementById('simplificationLevelValue');
     const apiKeyInput = document.getElementById('apiKey');
     const saveApiKeyButton = document.getElementById('saveApiKey');
+    const enableImages = document.getElementById('enableImages');
   
     const levelLabels = {
       '1': 'Basic',
@@ -12,10 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   
     // Load saved settings
-    chrome.storage.sync.get(['enabled', 'simplificationLevel', 'apiKey'], function(data) {
+    chrome.storage.sync.get(['enabled', 'simplificationLevel', 'apiKey', 'enableImages'], function(data) {
       simplifyToggle.checked = data.enabled || false;
       simplificationLevel.value = data.simplificationLevel || 2;
       apiKeyInput.value = data.apiKey || '';
+      document.getElementById('enableImages').checked = data.enableImages || false;
       updateValues();
     });
   
@@ -113,5 +115,12 @@ document.addEventListener('DOMContentLoaded', function() {
     apiKeyInput.addEventListener('input', function() {
       chrome.storage.sync.set({ apiKey: this.value });
       console.log('API key saved');
+    });
+
+    // Add event listener for the images toggle
+    enableImages.addEventListener('change', function() {
+      chrome.storage.sync.set({ enableImages: this.checked }, () => {
+        sendSettings();
+      });
     });
   });  // Add this closing parenthesis
